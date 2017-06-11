@@ -18,5 +18,28 @@ module.exports = {
 
       return callback&&callback();
     });
+  },
+  getMembers: function(listName, ownerScreenName, numUsers, callback) {
+    var getParams = {
+      slug: listName,
+      owner_screen_name: ownerScreenName,
+      count: numUsers,
+      include_entities: false
+    };
+
+    var client = new Twitter(config.auth);
+    client.get('lists/members', getParams,  function(err, members, response) {
+      if(err) {
+        return callback&&callback(err);
+      }
+
+      var listMemberHandles = [];
+      for(var i in members.users) {
+        var member = members.users[i];
+        listMemberHandles.push(member.screen_name);
+      }
+
+      return callback&&callback(null, listMemberHandles);
+    });
   }
 }

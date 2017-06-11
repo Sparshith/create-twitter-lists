@@ -15,6 +15,8 @@ var parser = parse({delimiter: ','}, function (err, data) {
     return false;
   }
 
+  var allMembers = membersToAdd.slice(0).map(function(handle){ return handle.replace('@', '').trim() });
+
   var membersToAddArr = [];
   while(membersToAdd.length) {
     var members = membersToAdd.splice(0, 51).map(function(handle){ return handle.replace('@', '').trim() }).join(',');
@@ -40,6 +42,28 @@ var parser = parse({delimiter: ','}, function (err, data) {
       console.log(err);
       return false;
     }
+
+    /**
+    * Fetching users that have been added to the list, to check if any users weren't added.
+    * Outputs the left-out users to console.
+    **/
+
+    var membersFetched = function(err, memberHandles) {
+      if(err) {
+        console.log(err);
+        return false;
+      }
+
+      var omittedUsers = allMembers.filter(x => memberHandles.indexOf(x) < 0 );
+      console.log("The following users weren't added to the list, as they were protected accounts, or invalid ones. :(  ");
+      for(var i in omittedUsers) {
+        console.log('https://twitter.com/'+ omittedUsers[i]);
+      }
+      return;
+    };
+
+    list.getMembers(config.userDetails.listName, config.userDetails.yourHandle, numMembers, membersFetched);
+
   });
 });
 
