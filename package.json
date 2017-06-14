@@ -4,8 +4,10 @@
   "description": "Script to add members in bulk to a twitter list",
   "main": "index.js",
   "dependencies": {
+    "@google/maps": "^0.4.0",
     "async": "^2.4.1",
     "csv-parse": "^1.2.0",
+    "csv-write-stream": "^2.0.0",
     "twitter": "^1.7.0"
   },
   "devDependencies": {},

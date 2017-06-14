@@ -8,7 +8,8 @@ var inputFile = 'members.csv';
 var asyncTasks = [];
 
 var parser = parse({delimiter: ','}, function (err, data) {
-  var membersToAdd = data[0];
+  var membersToAdd = data[0].filter(function(member) { return member.length });
+
   var numMembers = membersToAdd.length;
   if(numMembers > 5000) {
     console.log("A maximum of 5000 members can be added to a list. Please reduce the number of members and try again.");

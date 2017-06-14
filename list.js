@@ -9,7 +9,7 @@ module.exports = {
       screen_name: membersToAdd
     };
 
-    var client = new Twitter(config.auth);
+    var client = new Twitter(config.auth.twitter);
     client.post('lists/members/create_all', postParams,  function(err, listDetails, response) {
       if(err) {
         return callback&&callback(err);
@@ -27,7 +27,7 @@ module.exports = {
       include_entities: false
     };
 
-    var client = new Twitter(config.auth);
+    var client = new Twitter(config.auth.twitter);
     client.get('lists/members', getParams,  function(err, members, response) {
       if(err) {
         return callback&&callback(err);
