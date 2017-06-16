@@ -261,11 +261,11 @@ var parser = parse({delimiter: ','}, function (err, users) {
       return;
     }
 
-    if(i>20) {
-      return;
-    }
-
     asyncTasks.push(function(callback){
+      if((i !== 0) && (i % 50 == 0)) {
+        console.log("Finished fetching data for "+ i + " users...");
+      }
+
       googleMapsClient.geocode({
         address: location
       }, function(err, response) {
@@ -285,7 +285,11 @@ var parser = parse({delimiter: ','}, function (err, users) {
                     }
                     listsObj[continent].push(handle);
                     return callback&&callback();
+                  } else {
+                    return callback&&callback();
                   }
+                } else {
+                  return callback&&callback();
                 }
               }
             } else {
@@ -299,14 +303,14 @@ var parser = parse({delimiter: ','}, function (err, users) {
     })
   });
 
-  if(asyncTasks.length > 1000) {
-    console.log("Max limit per day is 1000, please reduce the number of users and try again!");
+  if(asyncTasks.length > 2500) {
+    console.log("Max limit per day is 2500, please reduce the number of users and try again!");
     return;
   }
 
   console.log("----------------Pretending to be fancy, hold on tight ------------------");
 
-  async.parallel(asyncTasks, function(err){
+  async.series(asyncTasks, function(err){
     if(err) {
       console.log(err);
       return;
