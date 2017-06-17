@@ -7,7 +7,7 @@ list = require('./list'),
 csvWriter = require('csv-write-stream');
 
 var inputFile = 'user_locations.csv';
-var asyncTasks = [];
+var asyncTasks = [], examplesDir = 'examples/locations/';
 
 var countryContinentMapping = {
   "AD": "Europe",
@@ -251,13 +251,24 @@ var countryContinentMapping = {
 };
 
 var parser = parse({delimiter: ','}, function (err, users) {
-  var asyncTasks = [], listsObj = {};
+  var asyncTasks = [], listsObj = {}, noLocationUsers = [], validAddressUsers = [], allUsers = [];
   var googleMapsClient = googleMaps.createClient(config.auth.google);
+  var noLocationWriter = csvWriter({ sendHeaders: false});
+  noLocationWriter.pipe(fs.createWriteStream(examplesDir + 'noLocation.csv'));
+
   users.forEach(function(user, i) {
     var handle = user[0] || null;
     var location = user[1] || null;
 
-    if(!handle || !location) {
+    if(!handle) {
+      return;
+    }
+
+    allUsers.push(handle);
+
+    if(!location) {
+      noLocationUsers.push(handle);
+      noLocationWriter.write({ users: 'https://twitter.com/' + handle });
       return;
     }
 
@@ -277,21 +288,22 @@ var parser = parse({delimiter: ','}, function (err, users) {
             if(addressComponents) {
               for(var i in addressComponents) {
                 var component = addressComponents[i];
-                if(component.types.indexOf('country') >= 0) {
+                if(component.types.indexOf('country') >= -1) {
                   if(countryContinentMapping[component['short_name']] !== undefined && countryContinentMapping[component['short_name']]) {
                     var continent = countryContinentMapping[component['short_name']];
                     if(listsObj[continent] === undefined || !listsObj[continent]) {
                       listsObj[continent] = [];
                     }
+                    validAddressUsers.push(handle);
                     listsObj[continent].push(handle);
                     return callback&&callback();
-                  } else {
-                    return callback&&callback();
                   }
-                } else {
-                  return callback&&callback();
                 }
               }
+              /**
+              * If no components match, return.
+              **/
+              return callback&&callback();
             } else {
               return callback&&callback();
             }
@@ -302,6 +314,8 @@ var parser = parse({delimiter: ','}, function (err, users) {
       });
     })
   });
+
+  noLocationWriter.end();
 
   if(asyncTasks.length > 2500) {
     console.log("Max limit per day is 2500, please reduce the number of users and try again!");
@@ -316,14 +330,24 @@ var parser = parse({delimiter: ','}, function (err, users) {
       return;
     }
 
-    console.log("----------------Writing to files, please wait ------------------");
+    var invalidAddressUsers = allUsers.filter(x => noLocationUsers.indexOf(x) < 0 ).filter(x => validAddressUsers.indexOf(x) < 0 );
+    var invalidAddressWriter = csvWriter({ sendHeaders: false});
+    invalidAddressWriter.pipe(fs.createWriteStream(examplesDir + 'invalidAddress.csv'));
+
+    console.log("Logging users with no locations or invalid addresses....");
+    invalidAddressUsers.forEach(function(invalidAddressUser){
+       invalidAddressWriter.write({ user: 'https://twitter.com/' + invalidAddressUser });
+    });
+    invalidAddressWriter.end();
+
+    console.log("Logging users with valid users...");
 
     var parallelTasks = [];
     Object.keys(listsObj).forEach(function(continent){
       var members = listsObj[continent].map(function(handle){ return handle.replace('@', '').trim() });
       parallelTasks.push(function(callback){
         var writer = csvWriter({ sendHeaders: false, newline: ','});
-        var fileName = continent.replace(/ /g,"_") + '.csv';
+        var fileName = examplesDir + continent.replace(/ /g,"_") + '.csv';
         console.log("Adding " + members.length + " members to "+ fileName + '...');
         writer.pipe(fs.createWriteStream(fileName));
         /**
@@ -347,8 +371,6 @@ var parser = parse({delimiter: ','}, function (err, users) {
     });
 
   })
-
-
 });
 
 fs.createReadStream(inputFile).pipe(parser);
